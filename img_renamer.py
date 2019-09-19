@@ -72,7 +72,7 @@ def rand_num_and_letter(length):
 			my_rand_letter = random.choice(string.ascii_lowercase)
 			rand_num_and_letter_string += my_rand_letter
 	if rand_num_and_letter_string[-1] == "0":	
-		print("oops, last char is 0")
+		#print("oops, last char is 0")
 		rand_num_and_letter_string = rand_num_and_letter_string[:-1]
 		rand_num_and_letter_string += str(random.randint(1, 9))
 	return rand_num_and_letter_string
@@ -109,13 +109,15 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 		shutil.move(myfile, new_filename)
 		# Get stat info
 		stinfo = os.stat(new_filename)
-		print(dir(stinfo))
-		sys.exit(0)
+		#print(dir(stinfo))
+		#sys.exit(0)
 		# Make the file accessed time now
 		#print(f"Modified time before: {stinfo.st_mtime}")
 		os.utime(new_filename, (stinfo.st_atime, epoch_date_now)) 
 		# Make the file modified time now
 		os.utime(new_filename, (stinfo.st_mtime, epoch_date_now)) 
+		# Make the ctime modified time now
+		os.utime(new_filename, (stinfo.st_ctime, epoch_date_now)) 
 		# Get the stat info again
 		stinfo = os.stat(new_filename)
 		# Print modified time after
