@@ -94,12 +94,10 @@ logfile_handler.setFormatter(logfile_format)
 logger.addHandler(logfile_handler)
 
 #logger.addHandler(stream_handler)
+logger.debug("test debug")
+logger.info("test info")
 
-
-logger.warning("my warning")
-logger.error("my error")
-logger.debug("my debug")
-logger.info("my info")
+logger.setLevel(logging.DEBUG)
 
 
 # If running script against an entire dir let's change to that dir
@@ -315,16 +313,7 @@ if args.dir:
 	for i in exceptions.items():
 		print(i)
 	#print(exceptions)
+	print()
 	exceptcounts = collections.Counter(exceptions.values())
+	print(type(exceptcounts))
 	print(exceptcounts)
-	
-#	if args[0] == "all":
-#		for i in os.listdir():
-#			my_rand_starting_number += 1
-#			if i.lower().endswith("jpg"):
-#				common_rename_actions(my_rand_starting_number, my_letters)
-#	elif args[0] == "space_twos":
-#		funky_files = glob.glob("* 2.JPG")
-#		for i in funky_files:
-#			my_rand_starting_number += 1
-#			common_rename_actions(my_rand_starting_number, my_letters)
