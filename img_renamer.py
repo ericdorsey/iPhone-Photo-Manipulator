@@ -9,17 +9,19 @@ import shutil
 import datetime
 import argparse
 import collections
+import logging
 from tqdm import tqdm
 from exif import Image
 
 # Initialize the parser
 parser = argparse.ArgumentParser()
-parser.add_argument("-d", "--dir", help="rename all files in supplied directory")
+parser.add_argument("-d", "--dir", help="run this script against files in supplied directory")
 parser.add_argument("-r", "--removeaae", action="store_true", help="delete the .aae files; for use with --directory argument")
-parser.add_argument("-f", "--file", help="rename only supplied file")
+parser.add_argument("-f", "--file", help="run this script against only supplied file name")
 parser.add_argument("-w", "--whatif", action="store_true", help="what if; dry run")
+parser.add_argument("-c", "--changenames", action="store_true", help="change filename(s), rename (all) file(s)")
 args = parser.parse_args()
-print(args)
+#print(args)
 
 # Ensure we don't have bad argument/flag combinations
 if args.dir and args.file:
@@ -36,6 +38,9 @@ if args.whatif:
 	#print("whatif flag detected")
 	dryrun = True
 
+# Environment stuff
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
 # Get a date object
 date_now = datetime.datetime.now()
 
@@ -43,7 +48,61 @@ date_now = datetime.datetime.now()
 epoch_date_now = date_now.strftime("%s")
 epoch_date_now = int(epoch_date_now)
 
-# If running on a whole dir let's change to that dir
+# Name of logs dir
+logs_dir = "logs"
+
+# where the script is running + /logs
+logs_dir_fullpath = f"{current_dir}/{logs_dir}"  
+#print(f"logs_dir_fullpath: {logs_dir_fullpath}")
+
+# Create logs dir if it doesn't exist
+os.chdir(current_dir)
+#print(os.getcwd())
+#sys.exit()
+if not os.path.exists(logs_dir_fullpath):
+	print(f"creating logs dir at {logs_dir_fullpath}")
+	os.makedirs(logs_dir_fullpath)
+#sys.exit()
+
+# logging config
+logging_filename = f"{logs_dir_fullpath}/{date_now.year}-{date_now.month}-{date_now.day}_{date_now.hour}-{date_now.minute}-{date_now.second}.log"
+
+
+# Create a custom logger
+logger = logging.getLogger(__name__)
+#print(type(logger))
+#print(dir(logger))
+#input()
+
+# Create logger handler(s)
+#logfile_handler = logging.FileHandler(logging_filename)
+logfile_handler = logging.FileHandler(logging_filename)#, mode="a") # still empty
+
+# Set the logging level
+logfile_handler.setLevel(logging.DEBUG)
+
+# Create logger formatter
+#logfile_format = logging.Formatter("%(asctimes)s - %(name)s - %s(levelname)s - %(message)s")
+
+logfile_format = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+#stream_handler = logging.StreamHandler(stream=None)
+
+# Add formatters to handlers
+logfile_handler.setFormatter(logfile_format)
+
+# Add handlers to logger
+logger.addHandler(logfile_handler)
+
+#logger.addHandler(stream_handler)
+
+
+logger.warning("my warning")
+logger.error("my error")
+logger.debug("my debug")
+logger.info("my info")
+
+
+# If running script against an entire dir let's change to that dir
 if args.dir:
 	try:
 		os.chdir(args.dir)
@@ -92,22 +151,33 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 	exceptions = {}
 	#print(f"rename_file() called against {myfile}")
 	#print(f"rand_fname: {rand_fname}, dryrun: {dryrun}, counter: {counter}, append_padding: {append_padding}")
-	new_filename = rand_fname
-	padding_addon = str(counter).zfill(append_padding)
-	new_filename += padding_addon
-	new_filename += ".jpg"
-	new_filename = f"IMG_RENAME_{new_filename}"
+	if args.changenames:
+		new_filename = rand_fname
+		padding_addon = str(counter).zfill(append_padding)
+		new_filename += padding_addon
+		new_filename += ".jpg"
+		new_filename = f"IMG_RENAME_{new_filename}"
 	#print(f"-----> {new_filename}")
 	#sys.exit()
-	# we're modifying an individual file
+
 	if directory_root is not None:
-		my_file = f"{directory_root}/{myfile}"
-		new_filename = f"{directory_root}/{new_filename}"
+		# we're modifying an individual file
+		if args.changenames:
+			#my_file = f"{directory_root}/{myfile}"
+			new_filename = f"{directory_root}/{new_filename}"
+		else:
+			#my_file = f"{directory_root}/{myfile}"
+			new_filename = f"{directory_root}/{myfile}"
+
 	if dryrun == False:
-		print(f"{myfile} is being renamed {new_filename}")
 		#sys.exit()
 		#shutil.copy(new_filename, new_filename)
-		shutil.move(myfile, new_filename)
+		if args.changenames:
+			logger.debug(f"{myfile} is being renamed {new_filename}")
+			shutil.move(myfile, new_filename)
+		else:
+			new_filename = f"{myfile}"
+			logger.debug(f"{new_filename} is current file")
 #		# Get stat info
 #		stinfo = os.stat(new_filename)
 #		#print(dir(stinfo))
@@ -135,68 +205,73 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 #		# Strip the exif info with PIL
 #		#my_image = Image.open(new_filename)
 #		#my_image.save(new_filename, "JPEG", subsampling=0, quality=100)
-		print("EXIF")
+
+		logger.debug("EXIF")
 		# Strip off the date of the image with exif
 		with open(new_filename, "rb") as image_file:
 			try:
 				my_image = Image(image_file)
 			except AssertionError as err:
 				exc_type, value, traceback = sys.exc_info()
-				print(exc_type)
-				print(err)
+				#logger.debug(exc_type)
+				#logger.debug(err)
 				#pass
 				exceptions[new_filename] = exc_type
+				#logger.debug(f"exif error with {new_filename}")
+				#logger.debug(f"{exc_type}\n{err}")
+				logger.exception(f"exif exception caught with {new_filename}", exc_info=True)
 				return	
 			try:
-				print("DATETIME")
-				print(my_image.datetime)
+				logger.debug("DATETIME")
+				logger.debug(my_image.datetime)
 				my_image.datetime = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-				print(my_image.datetime)
+				logger.debug(my_image.datetime)
 			except (AttributeError, KeyError) as err:
 				exc_type, value, traceback = sys.exc_info()
-				print(err)
 				exceptions[new_filename] = exc_type
+				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
 				pass
 			try:
-				print("DATETIME_ORIGINAL")
-				print(my_image.datetime_original)
+				logger.debug("DATETIME_ORIGINAL")
+				logger.debug(my_image.datetime_original)
 				my_image.datetime_original = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-				print(my_image.datetime_original)
+				logger.debug(my_image.datetime_original)
 			except (AttributeError, KeyError) as err:
 				exc_type, value, traceback = sys.exc_info()
-				print(err)
 				exceptions[new_filename] = exc_type
+				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
 				pass
 			try:
-				print("DATETIME_DIGITIZED")
-				print(my_image.datetime_digitized)
+				logger.debug("DATETIME_DIGITIZED")
+				logger.debug(my_image.datetime_digitized)
 				my_image.datetime_digitized = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-				print(my_image.datetime_digitized)
+				logger.debug(my_image.datetime_digitized)
 			except (AttributeError, KeyError) as err:
 				exc_type, value, traceback = sys.exc_info()
-				print(err)
 				exceptions[new_filename] = exc_type
+				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
 				pass
 			try:
-				print("GPS_DATESTAMP")
-				print(my_image.gps_datestamp)
+				logger.debug("GPS_DATESTAMP")
+				logger.debug(my_image.gps_datestamp)
 				my_image.gps_datestamp = f"{date_now.year}:{date_now.month}:{date_now.day}"
-				print(my_image.gps_datestamp)
+				logger.debug(my_image.gps_datestamp)
 			except (AttributeError, KeyError) as err:
 				exc_type, value, traceback = sys.exc_info()
-				print(err)
 				exceptions[new_filename] = exc_type
+				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
 				pass
-
 
 		with open(new_filename, "wb") as new_image_file:
 			new_image_file.write(my_image.get_file())
 		#sys.exit()
-		print(f"Iteration exceptions: {exceptions}")
+		logger.debug(f"Iteration exceptions: {exceptions}")
 		return exceptions
 		
-		
-	elif dryrun == True:
+	if dryrun == True and not args.changenames:
+		new_filename = f"{directory_root}/{myfile}"
+		print(f"DRYRUN: {myfile} would have had EXIF date data modified")
+	elif dryrun == True and args.changenames:
 		print(f"DRYRUN: {myfile} would have been renamed {new_filename}")
 
 # Create a random filename
@@ -233,13 +308,14 @@ if args.dir:
 		if iteration_exceptions != None:
 			exceptions.update(iteration_exceptions)
 		counter += 1
-		print()
+		#print()
 
-	print()
-	print(exceptions)
-	exceptcounts = collections.Counter(exceptions.values())
+	print("*" * 15)
 	print("EXCEPTIONS")
+	for i in exceptions.items():
+		print(i)
 	#print(exceptions)
+	exceptcounts = collections.Counter(exceptions.values())
 	print(exceptcounts)
 	
 #	if args[0] == "all":
