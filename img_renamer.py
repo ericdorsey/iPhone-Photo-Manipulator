@@ -8,8 +8,8 @@ import string
 import shutil
 import datetime
 import argparse
+import collections
 from tqdm import tqdm
-#from PIL import Image 
 from exif import Image
 
 # Initialize the parser
@@ -30,7 +30,7 @@ if not args.file and not args.dir:
 	print(f"-f or -d are required; you must supply a file or directory")
 #sys.exit()
 
-# dry run? 
+# Is this a dry run? 
 dryrun = False
 if args.whatif:
 	#print("whatif flag detected")
@@ -43,17 +43,11 @@ date_now = datetime.datetime.now()
 epoch_date_now = date_now.strftime("%s")
 epoch_date_now = int(epoch_date_now)
 
-#print(epoch_date_now)
-#print(type(epoch_date_now))
-#sys.exit(0)
-#epoch_date_now = int(epoch_date_now)
-
-# Change to dir 
+# If running on a whole dir let's change to that dir
 if args.dir:
 	try:
 		os.chdir(args.dir)
 	except FileNotFoundError as err:
-		print("Caught error!:")
 		print(err)
 		print(f"{args.dir} is not a valid directory? Quitting.")
 		sys.exit()
@@ -74,8 +68,9 @@ def rand_num_and_letter(length):
 		if char_or_num == 1:	
 			my_rand_letter = random.choice(string.ascii_lowercase)
 			rand_num_and_letter_string += my_rand_letter
+
+	# oops, last char is 0 .. maybe this doesn't matter now?
 	if rand_num_and_letter_string[-1] == "0":	
-		#print("oops, last char is 0")
 		rand_num_and_letter_string = rand_num_and_letter_string[:-1]
 		rand_num_and_letter_string += str(random.randint(1, 9))
 	return rand_num_and_letter_string
@@ -94,6 +89,7 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 	if not myfile.lower().endswith(".jpg") is True:
 		print(f"{myfile} is not a .jpg! Exiting!")
 		sys.exit()
+	exceptions = {}
 	#print(f"rename_file() called against {myfile}")
 	#print(f"rand_fname: {rand_fname}, dryrun: {dryrun}, counter: {counter}, append_padding: {append_padding}")
 	new_filename = rand_fname
@@ -142,51 +138,64 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 		print("EXIF")
 		# Strip off the date of the image with exif
 		with open(new_filename, "rb") as image_file:
-			my_image = Image(image_file)
+			try:
+				my_image = Image(image_file)
+			except AssertionError as err:
+				exc_type, value, traceback = sys.exc_info()
+				print(exc_type)
+				print(err)
+				#pass
+				exceptions[new_filename] = exc_type
+				return	
 			try:
 				print("DATETIME")
 				print(my_image.datetime)
 				my_image.datetime = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
 				print(my_image.datetime)
-			except AttributeError as err:
-				print("*" * 10)
+			except (AttributeError, KeyError) as err:
+				exc_type, value, traceback = sys.exc_info()
 				print(err)
+				exceptions[new_filename] = exc_type
 				pass
-
 			try:
 				print("DATETIME_ORIGINAL")
 				print(my_image.datetime_original)
 				my_image.datetime_original = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
 				print(my_image.datetime_original)
-			except AttributeError as err:
-				print("*" * 10)
+			except (AttributeError, KeyError) as err:
+				exc_type, value, traceback = sys.exc_info()
 				print(err)
+				exceptions[new_filename] = exc_type
 				pass
-
 			try:
 				print("DATETIME_DIGITIZED")
 				print(my_image.datetime_digitized)
 				my_image.datetime_digitized = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
 				print(my_image.datetime_digitized)
-			except AttributeError as err:
-				print("*" * 10)
+			except (AttributeError, KeyError) as err:
+				exc_type, value, traceback = sys.exc_info()
 				print(err)
+				exceptions[new_filename] = exc_type
 				pass
-
 			try:
 				print("GPS_DATESTAMP")
 				print(my_image.gps_datestamp)
 				my_image.gps_datestamp = f"{date_now.year}:{date_now.month}:{date_now.day}"
 				print(my_image.gps_datestamp)
-			except AttributeError as err:
-				print("*" * 10)
+			except (AttributeError, KeyError) as err:
+				exc_type, value, traceback = sys.exc_info()
 				print(err)
+				exceptions[new_filename] = exc_type
 				pass
 
-			
+
 		with open(new_filename, "wb") as new_image_file:
 			new_image_file.write(my_image.get_file())
 		#sys.exit()
+		print(f"Iteration exceptions: {exceptions}")
+		return exceptions
+		
+		
 	elif dryrun == True:
 		print(f"DRYRUN: {myfile} would have been renamed {new_filename}")
 
@@ -205,6 +214,7 @@ if args.file:
 	#sys.exit()
 	rename_file(args.file, rand_fname, dryrun, counter, append_padding, directory_root)	
 if args.dir:
+	exceptions = {}
 	# Remove the .AAE files first
 	if args.removeaae:
 		remove_aae_files(dryrun)
@@ -219,9 +229,18 @@ if args.dir:
 		if i.lower().endswith("jpg"):
 			files_in_dir.append(i)
 	for i in tqdm(files_in_dir):
-		rename_file(i, rand_fname, dryrun, counter, append_padding)
+		iteration_exceptions = rename_file(i, rand_fname, dryrun, counter, append_padding)
+		if iteration_exceptions != None:
+			exceptions.update(iteration_exceptions)
 		counter += 1
 		print()
+
+	print()
+	print(exceptions)
+	exceptcounts = collections.Counter(exceptions.values())
+	print("EXCEPTIONS")
+	#print(exceptions)
+	print(exceptcounts)
 	
 #	if args[0] == "all":
 #		for i in os.listdir():
