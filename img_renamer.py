@@ -8,6 +8,7 @@ import string
 import shutil
 import datetime
 import argparse
+from tqdm import tqdm
 #from PIL import Image 
 from exif import Image
 
@@ -100,6 +101,8 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 	new_filename += padding_addon
 	new_filename += ".jpg"
 	new_filename = f"IMG_RENAME_{new_filename}"
+	#print(f"-----> {new_filename}")
+	#sys.exit()
 	# we're modifying an individual file
 	if directory_root is not None:
 		my_file = f"{directory_root}/{myfile}"
@@ -109,55 +112,78 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 		#sys.exit()
 		#shutil.copy(new_filename, new_filename)
 		shutil.move(myfile, new_filename)
-		# Get stat info
-		stinfo = os.stat(new_filename)
-		#print(dir(stinfo))
-		#sys.exit(0)
-		# Make the file accessed time now
-		#print(f"Modified time before: {stinfo.st_mtime}")
-		#print(datetime.datetime.fromtimestamp(stinfo.st_mtime).strftime('%Y-%m-%d-%H:%M'))
-		print("Printing at_time, mtime, ctime")
-		for i in [stinfo.st_atime, stinfo.st_mtime, stinfo.st_ctime]:
-			print(datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d-%H:%M'))
-		os.utime(new_filename, (stinfo.st_atime, epoch_date_now)) 
-		# Make the file modified time now
-		os.utime(new_filename, (stinfo.st_mtime, epoch_date_now)) 
-		# Make the ctime modified time now
-		os.utime(new_filename, (stinfo.st_ctime, epoch_date_now)) 
-
-		# Get the stat info again
-		stinfo = os.stat(new_filename)
-		# Print modified time after
-		#print(f"Modified time after: {stinfo.st_mtime}")
-		print("Printing at_time, mtime, ctime")
-		for i in [stinfo.st_atime, stinfo.st_mtime, stinfo.st_ctime]:
-			print(datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d-%H:%M'))
-		#print(datetime.datetime.fromtimestamp(stinfo.st_mtime).strftime('%Y-%m-%d-%H:%M'))
-		# Strip the exif info with PIL
-		#my_image = Image.open(new_filename)
-		#my_image.save(new_filename, "JPEG", subsampling=0, quality=100)
+#		# Get stat info
+#		stinfo = os.stat(new_filename)
+#		#print(dir(stinfo))
+#		#sys.exit(0)
+#		# Make the file accessed time now
+#		#print(f"Modified time before: {stinfo.st_mtime}")
+#		#print(datetime.datetime.fromtimestamp(stinfo.st_mtime).strftime('%Y-%m-%d-%H:%M'))
+#		print("Printing at_time, mtime, ctime")
+#		for i in [stinfo.st_atime, stinfo.st_mtime, stinfo.st_ctime]:
+#			print(datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d-%H:%M'))
+#		os.utime(new_filename, (stinfo.st_atime, epoch_date_now)) 
+#		# Make the file modified time now
+#		os.utime(new_filename, (stinfo.st_mtime, epoch_date_now)) 
+#		# Make the ctime modified time now
+#		os.utime(new_filename, (stinfo.st_ctime, epoch_date_now)) 
+#
+#		# Get the stat info again
+#		stinfo = os.stat(new_filename)
+#		# Print modified time after
+#		#print(f"Modified time after: {stinfo.st_mtime}")
+#		print("Printing at_time, mtime, ctime")
+#		for i in [stinfo.st_atime, stinfo.st_mtime, stinfo.st_ctime]:
+#			print(datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d-%H:%M'))
+#		#print(datetime.datetime.fromtimestamp(stinfo.st_mtime).strftime('%Y-%m-%d-%H:%M'))
+#		# Strip the exif info with PIL
+#		#my_image = Image.open(new_filename)
+#		#my_image.save(new_filename, "JPEG", subsampling=0, quality=100)
 		print("EXIF")
 		# Strip off the date of the image with exif
 		with open(new_filename, "rb") as image_file:
 			my_image = Image(image_file)
-			print(my_image.datetime)
-			print(my_image.datetime_original)
-			print(my_image.datetime_digitized)
-			print(my_image.gps_datestamp)
-			my_image.datetime = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-			my_image.datetime_original = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-			my_image.datetime_digitized = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-			my_image.gps_datestamp = f"{date_now.year}:{date_now.month}:{date_now.day}"
-			#my_image.datetime = (date_now.year, date_now.month, date_now.day)
-			#del my_image.datetime
-			#del my_image.datetime_original
-			#del my_image.gps_datestamp
-			print("AFTER")
-			print(my_image.datetime)
-			print(my_image.datetime_original)
-			print(my_image.datetime_digitized)
-			print(my_image.gps_datestamp)
-			#my_image.write(new_filename)
+			try:
+				print("DATETIME")
+				print(my_image.datetime)
+				my_image.datetime = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
+				print(my_image.datetime)
+			except AttributeError as err:
+				print("*" * 10)
+				print(err)
+				pass
+
+			try:
+				print("DATETIME_ORIGINAL")
+				print(my_image.datetime_original)
+				my_image.datetime_original = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
+				print(my_image.datetime_original)
+			except AttributeError as err:
+				print("*" * 10)
+				print(err)
+				pass
+
+			try:
+				print("DATETIME_DIGITIZED")
+				print(my_image.datetime_digitized)
+				my_image.datetime_digitized = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
+				print(my_image.datetime_digitized)
+			except AttributeError as err:
+				print("*" * 10)
+				print(err)
+				pass
+
+			try:
+				print("GPS_DATESTAMP")
+				print(my_image.gps_datestamp)
+				my_image.gps_datestamp = f"{date_now.year}:{date_now.month}:{date_now.day}"
+				print(my_image.gps_datestamp)
+			except AttributeError as err:
+				print("*" * 10)
+				print(err)
+				pass
+
+			
 		with open(new_filename, "wb") as new_image_file:
 			new_image_file.write(my_image.get_file())
 		#sys.exit()
@@ -179,6 +205,9 @@ if args.file:
 	#sys.exit()
 	rename_file(args.file, rand_fname, dryrun, counter, append_padding, directory_root)	
 if args.dir:
+	# Remove the .AAE files first
+	if args.removeaae:
+		remove_aae_files(dryrun)
 	# get the number of files in the directory
 	num_files = len(os.listdir())
 	# counter; increment the append padding by one each iteration
@@ -189,11 +218,10 @@ if args.dir:
 		# grab all the .jpg files
 		if i.lower().endswith("jpg"):
 			files_in_dir.append(i)
-	for i in files_in_dir:
+	for i in tqdm(files_in_dir):
 		rename_file(i, rand_fname, dryrun, counter, append_padding)
 		counter += 1
-	if args.removeaae:
-		remove_aae_files(dryrun)
+		print()
 	
 #	if args[0] == "all":
 #		for i in os.listdir():
