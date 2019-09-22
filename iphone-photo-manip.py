@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import glob
+#import glob
 import os
 import random
 import sys
@@ -137,8 +137,14 @@ def rand_num_and_letter(length):
 
 def remove_aae_files(dryrun):
 	#print(f"Removing aae_files")
-	aae_files = glob.glob("*.AAE")
-	for i in aae_files:
+	#aae_files = glob.glob("*.AAE")
+	files_in_dir = []
+	regex = re.compile(f".+.AAE", re.IGNORECASE)
+	for i in os.listdir():
+		if re.match(regex, i):
+			files_in_dir.append(i)
+	#for i in aae_files:
+	for i in files_in_dir:
 		if dryrun == False:
 			print(f"Removing {i}")
 			os.remove(i)
