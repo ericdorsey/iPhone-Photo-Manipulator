@@ -10,6 +10,7 @@ import datetime
 import argparse
 import collections
 import logging
+import re
 from tqdm import tqdm
 from exif import Image
 
@@ -20,6 +21,8 @@ parser.add_argument("-r", "--removeaae", action="store_true", help="delete the .
 parser.add_argument("-f", "--file", help="run this script against only supplied file name")
 parser.add_argument("-w", "--whatif", action="store_true", help="what if; dry run")
 parser.add_argument("-c", "--changenames", action="store_true", help="change filename(s), rename (all) file(s)")
+parser.add_argument("-s", "--stripexifdates", action="store_true", help="strip exif dates from file(s)")
+parser.add_argument("-n", "--numberspaced", type=str, help="integer; for blah 1.JPG style filename renames. For use with -c")
 args = parser.parse_args()
 #print(args)
 
@@ -176,93 +179,67 @@ def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_r
 		else:
 			new_filename = f"{myfile}"
 			logger.debug(f"{new_filename} is current file")
-#		# Get stat info
-#		stinfo = os.stat(new_filename)
-#		#print(dir(stinfo))
-#		#sys.exit(0)
-#		# Make the file accessed time now
-#		#print(f"Modified time before: {stinfo.st_mtime}")
-#		#print(datetime.datetime.fromtimestamp(stinfo.st_mtime).strftime('%Y-%m-%d-%H:%M'))
-#		print("Printing at_time, mtime, ctime")
-#		for i in [stinfo.st_atime, stinfo.st_mtime, stinfo.st_ctime]:
-#			print(datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d-%H:%M'))
-#		os.utime(new_filename, (stinfo.st_atime, epoch_date_now)) 
-#		# Make the file modified time now
-#		os.utime(new_filename, (stinfo.st_mtime, epoch_date_now)) 
-#		# Make the ctime modified time now
-#		os.utime(new_filename, (stinfo.st_ctime, epoch_date_now)) 
-#
-#		# Get the stat info again
-#		stinfo = os.stat(new_filename)
-#		# Print modified time after
-#		#print(f"Modified time after: {stinfo.st_mtime}")
-#		print("Printing at_time, mtime, ctime")
-#		for i in [stinfo.st_atime, stinfo.st_mtime, stinfo.st_ctime]:
-#			print(datetime.datetime.fromtimestamp(i).strftime('%Y-%m-%d-%H:%M'))
-#		#print(datetime.datetime.fromtimestamp(stinfo.st_mtime).strftime('%Y-%m-%d-%H:%M'))
-#		# Strip the exif info with PIL
-#		#my_image = Image.open(new_filename)
-#		#my_image.save(new_filename, "JPEG", subsampling=0, quality=100)
 
 		logger.debug("EXIF")
-		# Strip off the date of the image with exif
-		with open(new_filename, "rb") as image_file:
-			try:
-				my_image = Image(image_file)
-			except AssertionError as err:
-				exc_type, value, traceback = sys.exc_info()
-				#logger.debug(exc_type)
-				#logger.debug(err)
-				#pass
-				exceptions[new_filename] = exc_type
-				#logger.debug(f"exif error with {new_filename}")
-				#logger.debug(f"{exc_type}\n{err}")
-				logger.exception(f"exif exception caught with {new_filename}", exc_info=True)
-				return	
-			try:
-				logger.debug("DATETIME")
-				logger.debug(my_image.datetime)
-				my_image.datetime = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-				logger.debug(my_image.datetime)
-			except (AttributeError, KeyError) as err:
-				exc_type, value, traceback = sys.exc_info()
-				exceptions[new_filename] = exc_type
-				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
-				pass
-			try:
-				logger.debug("DATETIME_ORIGINAL")
-				logger.debug(my_image.datetime_original)
-				my_image.datetime_original = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-				logger.debug(my_image.datetime_original)
-			except (AttributeError, KeyError) as err:
-				exc_type, value, traceback = sys.exc_info()
-				exceptions[new_filename] = exc_type
-				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
-				pass
-			try:
-				logger.debug("DATETIME_DIGITIZED")
-				logger.debug(my_image.datetime_digitized)
-				my_image.datetime_digitized = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
-				logger.debug(my_image.datetime_digitized)
-			except (AttributeError, KeyError) as err:
-				exc_type, value, traceback = sys.exc_info()
-				exceptions[new_filename] = exc_type
-				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
-				pass
-			try:
-				logger.debug("GPS_DATESTAMP")
-				logger.debug(my_image.gps_datestamp)
-				my_image.gps_datestamp = f"{date_now.year}:{date_now.month}:{date_now.day}"
-				logger.debug(my_image.gps_datestamp)
-			except (AttributeError, KeyError) as err:
-				exc_type, value, traceback = sys.exc_info()
-				exceptions[new_filename] = exc_type
-				logger.exception(f"Exception caught with {new_filename}", exc_info=True)
-				pass
+		if args.stripexifdates:
+			# Strip off the date of the image with exif
+			with open(new_filename, "rb") as image_file:
+				try:
+					my_image = Image(image_file)
+				except AssertionError as err:
+					exc_type, value, traceback = sys.exc_info()
+					#logger.debug(exc_type)
+					#logger.debug(err)
+					#pass
+					exceptions[new_filename] = exc_type
+					#logger.debug(f"exif error with {new_filename}")
+					#logger.debug(f"{exc_type}\n{err}")
+					logger.exception(f"exif exception caught with {new_filename}", exc_info=True)
+					return	
+				try:
+					logger.debug("DATETIME")
+					logger.debug(my_image.datetime)
+					my_image.datetime = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
+					logger.debug(my_image.datetime)
+				except (AttributeError, KeyError) as err:
+					exc_type, value, traceback = sys.exc_info()
+					exceptions[new_filename] = exc_type
+					logger.exception(f"Exception caught with {new_filename}", exc_info=True)
+					pass
+				try:
+					logger.debug("DATETIME_ORIGINAL")
+					logger.debug(my_image.datetime_original)
+					my_image.datetime_original = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
+					logger.debug(my_image.datetime_original)
+				except (AttributeError, KeyError) as err:
+					exc_type, value, traceback = sys.exc_info()
+					exceptions[new_filename] = exc_type
+					logger.exception(f"Exception caught with {new_filename}", exc_info=True)
+					pass
+				try:
+					logger.debug("DATETIME_DIGITIZED")
+					logger.debug(my_image.datetime_digitized)
+					my_image.datetime_digitized = f"{date_now.year}:{date_now.month}:{date_now.day} {date_now.hour}:{date_now.minute}:{date_now.second}"
+					logger.debug(my_image.datetime_digitized)
+				except (AttributeError, KeyError) as err:
+					exc_type, value, traceback = sys.exc_info()
+					exceptions[new_filename] = exc_type
+					logger.exception(f"Exception caught with {new_filename}", exc_info=True)
+					pass
+				try:
+					logger.debug("GPS_DATESTAMP")
+					logger.debug(my_image.gps_datestamp)
+					my_image.gps_datestamp = f"{date_now.year}:{date_now.month}:{date_now.day}"
+					logger.debug(my_image.gps_datestamp)
+				except (AttributeError, KeyError) as err:
+					exc_type, value, traceback = sys.exc_info()
+					exceptions[new_filename] = exc_type
+					logger.exception(f"Exception caught with {new_filename}", exc_info=True)
+					pass
 
-		with open(new_filename, "wb") as new_image_file:
-			new_image_file.write(my_image.get_file())
-		#sys.exit()
+			with open(new_filename, "wb") as new_image_file:
+				new_image_file.write(my_image.get_file())
+			#sys.exit()
 		logger.debug(f"Iteration exceptions: {exceptions}")
 		return exceptions
 		
@@ -297,10 +274,21 @@ if args.dir:
 	counter = 0
 	# create a list to hold all the file names
 	files_in_dir = []
-	for i in os.listdir():
-		# grab all the .jpg files
-		if i.lower().endswith("jpg"):
-			files_in_dir.append(i)
+	if args.numberspaced:
+		# args.numberspaced is a string number, probably "1" or "2"
+		# goal is to match XXXX 1.JPG or XXXX 2.JPG filenames
+		regex = re.compile(f".+ {args.numberspaced}.JPG", re.IGNORECASE)
+		for i in os.listdir():
+			if re.match(regex, i):
+				files_in_dir.append(i)
+	if not args.numberspaced:	
+		for i in os.listdir():
+			# grab all the .jpg files
+			if i.lower().endswith("jpg"):
+				files_in_dir.append(i)
+	# sort
+	files_in_dir.sort()
+	# process
 	for i in tqdm(files_in_dir):
 		iteration_exceptions = rename_file(i, rand_fname, dryrun, counter, append_padding)
 		if iteration_exceptions != None:
