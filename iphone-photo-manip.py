@@ -66,7 +66,6 @@ logger.addHandler(logfile_handler)
 # Set the logging level
 logger.setLevel(logging.DEBUG)
 
-
 # Ensure we don't have bad argument/flag combinations
 #if args.dir and args.file:
 #	print(f"-d and -f are mutually exclusive; choose either a directory or a file, not both")
@@ -82,17 +81,12 @@ if args.whatif:
 	dryrun = True
 
 # Log some information around this run
-#logger.debug(f"args were {args}")
 for i in vars(args).items():
 	logger.debug(i)
 logger.debug(f"current_dir is {current_dir}")
 #logger.debug("date_now is {date_now_strf}".format(date_now_strf=date_now.strftime("%s"))
 logger.debug(f"date_now is {date_now.strftime('%Y-%m-%d %H:%M:%S')}") 
 logger.debug(f"logging_filename is {logging_filename}")
-
-# Get an epoch date from it (time in seconds)
-#epoch_date_now = date_now.strftime("%s")
-#epoch_date_now = int(epoch_date_now)
 
 # Append padding var; if set to 4 means append 4 0's to the filename: example gdf67dgf0000
 # Only used if args.changenames flag is true
@@ -220,55 +214,8 @@ def strip_exifdates(myfile, date_now, dryrun):
 	logger.debug(f"Iteration exceptions: {local_exceptions}")
 	return local_exceptions
 
-#def rename_file(myfile, rand_fname, dryrun, counter, append_padding, directory_root=None):
-#	if not myfile.lower().endswith(".jpg") is True:
-#		print(f"{myfile} is not a .jpg! Exiting!")
-#		sys.exit()
-#	exceptions = {}
-#	#print(f"rename_file() called against {myfile}")
-#	#print(f"rand_fname: {rand_fname}, dryrun: {dryrun}, counter: {counter}, append_padding: {append_padding}")
-#	if args.changenames:
-#		new_filename = rand_fname
-#		padding_addon = str(counter).zfill(append_padding)
-#		new_filename += padding_addon
-#		new_filename += ".jpg"
-#		new_filename = f"IMG_RENAME_{new_filename}"
-#	#print(f"-----> {new_filename}")
-#	#sys.exit()
-
-#	if directory_root is not None:
-#		# we're modifying an individual file
-#		if args.changenames:
-#			#my_file = f"{directory_root}/{myfile}"
-#			new_filename = f"{directory_root}/{new_filename}"
-#		else:
-#			#my_file = f"{directory_root}/{myfile}"
-#			new_filename = f"{directory_root}/{myfile}"
-
-#	if dryrun == False:
-#		#sys.exit()
-#		#shutil.copy(new_filename, new_filename)
-#		if args.changenames:
-#			logger.debug(f"{myfile} is being renamed {new_filename}")
-#			shutil.move(myfile, new_filename)
-#		else:
-#			new_filename = f"{myfile}"
-#			logger.debug(f"{new_filename} is current file")
-
-#		logger.debug("EXIF")
-#		if args.stripexifdates:
-#			# Strip off the date of the image with exif
-		
-#	if dryrun == True and not args.changenames:
-#		new_filename = f"{directory_root}/{myfile}"
-#		print(f"DRYRUN: {myfile} would have had EXIF date data modified")
-#	elif dryrun == True and args.changenames:
-#		print(f"DRYRUN: {myfile} would have been renamed {new_filename}")
-
 # Create a random filename
 rand_fname = rand_num_and_letter(8)	
-#print(f"rand_fname is {rand_fname}")
-#sys.exit()
 
 # Main 
 if args.dir:
@@ -325,19 +272,13 @@ if args.dir:
 				exceptions.update(iteration_exceptions)
 		if args.changenames:
 			rename_file(i, rand_fname, counter, append_padding, dryrun)
-#		else:
-#			new_filename = f"{myfile}"
-#			logger.debug(f"{new_filename} is current file")
 		counter += 1
 
-	#print(f"Log file:\n{logging_filename}")
 	print(f"{logging_filename}")
 	if not (len(exceptions) == 0):
 		print("Exceptions collected:")
 		for i in exceptions.items():
 			print(i)
-	#print(exceptions)
 	exceptcounts = collections.Counter(exceptions.values())
-	#print(type(exceptcounts))
 	if not (len(exceptcounts) == 0):
 		print(exceptcounts)
