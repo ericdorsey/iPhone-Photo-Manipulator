@@ -22,7 +22,7 @@ parser.add_argument("-f", "--file", help="run this script against only supplied 
 parser.add_argument("-w", "--whatif", action="store_true", help="what if; dry run")
 parser.add_argument("-c", "--changenames", action="store_true", help="change filename(s), rename (all) file(s)")
 parser.add_argument("-s", "--stripexifdates", action="store_true", help="strip exif dates from file(s)")
-parser.add_argument("-n", "--numberspaced", type=str, help="integer; for blah 1.JPG style filename renames. For use with -c")
+parser.add_argument("-n", "--numberspaced", type=str, help="integer; for `XXXX 1.JPG` filename renames. For use with -c")
 args = parser.parse_args()
 #print(args)
 
