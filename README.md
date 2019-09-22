@@ -1,14 +1,14 @@
 ### iPhone Photo Manipulator
 
 #### What Is This
-A helper script to wrangle photos dumped off an iPhone to OSX, then modified, then added back to the iPhone via AirDrop.
+A helper script to wrangle photos dumped off an iPhone to OSX, then modified, then added back to the iPhone via AirDrop (or whatever other means).
 
 #### TL;DR
 
 Allows multiple helper operations against a folder of photos dumped from an iPhone onto OSX via Image Capture:
 * Remove `.AAE` files
 * Rename `.JPG` files (desireable because of naming conflits)
-* Strip EXIF data data (to control sorting when added back to iPhone (via Airdop, etc)
+* Strip EXIF date data (to control sorting when added back to iPhone (via Airdop, etc)
 
 #### !TL;DR
 
